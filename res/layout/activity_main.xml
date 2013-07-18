@@ -1,4 +1,4 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,9 +16,24 @@
         android:layout_height="wrap_content" />
     
     <fragment
-      android:name="com.google.android.youtube.player.YouTubePlayerFragment"
-      android:id="@+id/youtube_fragment"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"/>
+      	android:name="com.google.android.youtube.player.YouTubePlayerFragment"
+      	android:id="@+id/youtube_fragment"
+      	android:layout_width="match_parent"
+      	android:layout_height="wrap_content"
+      	android:layout_below="@id/webpage"/>
 
-</LinearLayout>
+
+    <Button
+        android:id="@+id/reload"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:text="Reload" />
+    <TextView
+        android:text="Due to limitations of the Youtube API this application must be a foreground task. Playback will work with the screen off, but playback will stop and it may take a few seconds to rebuffer (dumb, I know) due to the youtube player fighting us."
+        android:layout_above="@id/reload" 
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+    />
+
+</RelativeLayout>
