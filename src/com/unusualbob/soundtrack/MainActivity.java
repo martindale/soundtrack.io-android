@@ -60,7 +60,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 		webView.addJavascriptInterface(jsInterface, "android");
 
 		// load the page
-		webView.loadUrl("http://thegridcraft.com:13000/android");
+		webView.loadUrl("file:///android_asset/android.html");
 
 		//Initialize the youtube player
 		YouTubePlayerFragment youTubePlayerFragment = (YouTubePlayerFragment) getFragmentManager().findFragmentById(R.id.youtube_fragment);
@@ -72,9 +72,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 			@Override
 			public void onClick(View v)
 			{
-				// TODO Auto-generated method stub
-				webView.loadUrl("http://thegridcraft.com:13000/android");
-				
+				webView.loadUrl("file:///android_asset/android.html");
 			}
 		
 		});
