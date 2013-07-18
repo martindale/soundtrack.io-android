@@ -31,6 +31,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 	YouTubePlayer ytPlayer;
 	PowerManager.WakeLock wl;
 	String currentTrack;
+	Boolean exiting = false;
 
 	@SuppressLint("SetJavaScriptEnabled")
 	@Override
@@ -80,6 +81,11 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 
 	}
 	
+	public void onBackPressed() {
+		exiting = true;
+		finish();
+	}
+	
 	//This method is from the base class and gives us access to the player
 	@Override
 	public void onInitializationSuccess(YouTubePlayer.Provider provider, final YouTubePlayer player, boolean wasRestored)
@@ -100,14 +106,16 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 			{
 				//For now the only reason for pauses is a screen-off, we try to resume after 500ms
 				Log.d("Youtube Player", "Paused");
-				TimerTask task = new TimerTask() {
-					public void run() {
-						Log.d("Player", "Resume Track");
-						player.loadVideo(currentTrack, player.getCurrentTimeMillis()+1500);
-					}
-				};
-				Timer timer = new Timer();
-				timer.schedule(task, 500);
+				if (!exiting) {
+					TimerTask task = new TimerTask() {
+						public void run() {
+							Log.d("Player", "Resume Track");
+							player.loadVideo(currentTrack, player.getCurrentTimeMillis()+1500);
+						}
+					};
+					Timer timer = new Timer();
+					timer.schedule(task, 500);
+				}
 				
 			}
 
