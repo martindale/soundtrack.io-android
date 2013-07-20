@@ -1,6 +1,6 @@
 // Copyright 2012 Google Inc. All Rights Reserved.
 
-package com.unusualbob.soundtrack;
+package io.soundtrack;
 
 /**
  * Static container class for holding a reference to your YouTube Developer Key.
