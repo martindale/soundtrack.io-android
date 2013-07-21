@@ -1,4 +1,4 @@
-package com.unusualbob;
+package io.soundtrack;
 
 public class SoundtrackApplication
 {

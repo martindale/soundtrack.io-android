@@ -1,4 +1,4 @@
-package io.soundtrack;
+package io.soundtrack.activities;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -30,7 +30,11 @@ import com.google.android.youtube.player.YouTubePlayer.PlaybackEventListener;
 import com.google.android.youtube.player.YouTubePlayer.PlayerStateChangeListener;
 import com.google.android.youtube.player.YouTubePlayerFragment;
 import com.google.android.youtube.player.YouTubePlayer.PlayerStyle;
+
 import io.soundtrack.R;
+import io.soundtrack.common.ChatAdapter;
+import io.soundtrack.common.ChatItem;
+import io.soundtrack.common.Configuration;
 
 import de.roderick.weberknecht.WebSocket;
 import de.roderick.weberknecht.WebSocketEventHandler;
