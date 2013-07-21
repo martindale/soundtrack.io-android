@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package io.soundtrack;
+package io.soundtrack.activities;
+
+import io.soundtrack.common.Configuration;
 
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;

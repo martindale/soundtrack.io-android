@@ -1,4 +1,4 @@
-package io.soundtrack;
+package io.soundtrack.common;
 
 public class ChatItem
 {
