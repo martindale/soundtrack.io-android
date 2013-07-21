@@ -1,4 +1,4 @@
-package io.soundtrack;
+package io.soundtrack.common;
 
 import java.util.ArrayList;
 
@@ -11,7 +11,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-class ChatAdapter extends BaseAdapter
+public class ChatAdapter extends BaseAdapter
 {
 
 	ArrayList<ChatItem> chatItems;
