@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.unusualbob.soundtrack;
+package io.soundtrack;
 
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;

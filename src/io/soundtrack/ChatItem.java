@@ -1,4 +1,4 @@
-package com.unusualbob.soundtrack;
+package io.soundtrack;
 
 public class ChatItem
 {

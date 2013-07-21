@@ -1,6 +1,8 @@
-package com.unusualbob.soundtrack;
+package io.soundtrack;
 
 import java.util.ArrayList;
+
+import io.soundtrack.R;
 
 import android.content.Context;
 import android.view.LayoutInflater;
