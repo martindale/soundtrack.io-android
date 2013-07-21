@@ -41,15 +41,16 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 	//Misc Variables
 	String TAG = "MainActivity";
 	String currentTrack;
-	int retryIdx = 0;
+	int retryIdx;
 	Boolean exiting = false;
+	Boolean started = false;
 
 	//Initialize
 	YouTubePlayer ytPlayer;
 	PowerManager.WakeLock wl;
-	WebSocket websocket = null;
-	URI uri = null;
-	AsyncWebsocket mySocket = null;
+	WebSocket websocket;
+	URI uri;
+	AsyncWebsocket mySocket;
 
 	//UI
 	static ArrayList<ChatItem> chats = new ArrayList<ChatItem>();
@@ -62,10 +63,12 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
+		Log.d(TAG, "Oncreate called");
 
 		// Wakelock init
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-		wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Sountrack.io");
+		wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Sountrack.io");
 		wl.acquire();
 
 		// Initialize the youtube player
@@ -106,6 +109,14 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 
 		});
 	}
+	
+	@Override
+	public void onResume() {
+		super.onResume();
+		if (started) {
+			ytPlayer.play();
+		}
+	}
 
 	// Make sure to close background tasks on back press
 	public void onBackPressed()
@@ -132,8 +143,12 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 		player.setPlayerStyle(PlayerStyle.CHROMELESS);
 
 		// Start websocket
-		mySocket = new AsyncWebsocket();
-		mySocket.execute();
+		if (!started) {
+			started = true;
+			Log.d("Socket", "Start a new socket since we dont have one yet");
+			mySocket = new AsyncWebsocket();
+			mySocket.execute();
+		}
 
 		// Listen for player events so we can resume playback when the screen gets turned off
 		player.setPlaybackEventListener(new PlaybackEventListener()
@@ -151,19 +166,24 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 				// For now the only reason for pauses is a screen-off, we try to
 				// resume after 500ms
 				Log.d("Youtube Player", "Paused");
-				if (!exiting)
-				{
-					TimerTask task = new TimerTask()
-					{
-						public void run()
-						{
-							Log.d("Player", "Resume Track");
-							player.loadVideo(currentTrack, player.getCurrentTimeMillis() + 1500);
-						}
-					};
-					Timer timer = new Timer();
-					timer.schedule(task, 500);
-				}
+//				if (!exiting)
+//				{
+//					TimerTask task = new TimerTask()
+//					{
+//						public void run()
+//						{
+//							Log.d("Player", "Resume Track");
+//							try {
+//								player.loadVideo(currentTrack, player.getCurrentTimeMillis() + 1500);
+//							}
+//							catch(Exception e) {
+//								e.printStackTrace();
+//							}
+//						}
+//					};
+//					Timer timer = new Timer();
+//					timer.schedule(task, 100);
+//				}
 
 			}
 
@@ -294,10 +314,19 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 								// Log.d(webtag, "New track!");
 								String track = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("youtube").getJSONObject(0)
 										.getString("id");
-								ytPlayer.loadVideo(track, (int) (msg.getDouble("seekTo") * 1000));
+								try {
+									ytPlayer.loadVideo(track, (int) (msg.getDouble("seekTo") * 1000));
+								}
+								catch (Exception e) {
+									e.printStackTrace();
+								}
 
-								runOnUiThread(new SongInfoRunnable(msg.getJSONObject("data").getString("title"), msg.getJSONObject("data")
-										.getJSONObject("curator").getString("username")));
+								String curator = "The Machine";
+								if (msg.getJSONObject("data").has("curator")) {
+									curator = msg.getJSONObject("data").getJSONObject("curator").getString("username");
+								}
+								
+								runOnUiThread(new SongInfoRunnable(msg.getJSONObject("data").getString("title"), curator));
 							}
 							else
 							{
@@ -355,6 +384,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 	// A function we can call to restart the socket
 	void reconnect()
 	{
+		Log.w("Socket", "Reconnecting...");
 		if (!exiting)
 		{
 			TimerTask task = new TimerTask()
@@ -384,6 +414,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 		{
 			this.title = title;
 			this.curatorName = curator;
+			
 		}
 
 		@Override
