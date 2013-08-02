@@ -281,7 +281,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 		{
 			try
 			{
-				uri = new URI("ws://soundtrack.io/stream/websocket");
+				uri = new URI("wss://soundtrack.io/stream/websocket");
 				websocket = new WebSocket(uri);
 				final String webtag = "websocket";
 
