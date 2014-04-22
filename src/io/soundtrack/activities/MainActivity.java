@@ -482,7 +482,8 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 				curator = msg.getJSONObject("data").getJSONObject("curator").getString("username");
 			}
 
-			runOnUiThread(new SongInfoRunnable(msg.getJSONObject("data").getString("title"), curator));
+			String extendedTitle = msg.getJSONObject("data").getJSONObject("_artist").getString("name") + " Ð " + msg.getJSONObject("data").getString("title");
+			runOnUiThread(new SongInfoRunnable( extendedTitle , curator));
 		}
 		else
 		{
