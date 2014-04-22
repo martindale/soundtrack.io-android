@@ -1,5 +1,6 @@
 package io.soundtrack.activities;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -9,12 +10,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -26,6 +29,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.media.*;
 
 import com.google.android.youtube.player.YouTubePlayer;
 import com.google.android.youtube.player.YouTubePlayer.ErrorReason;
@@ -56,6 +60,11 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 	int retryIdx;
 	Boolean exiting = false;
 	Boolean started = false;
+
+	 private MediaPlayer mPlayer;
+		private Uri tempUri;
+		private AudioManager audiomanager;
+		private float volume;
 
 	//Initialize
 	YouTubePlayer ytPlayer;
@@ -107,6 +116,11 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 		YouTubePlayerFragment youTubePlayerFragment = (YouTubePlayerFragment) getFragmentManager().findFragmentById(R.id.youtube_fragment);
 		youTubePlayerFragment.initialize(Configuration.DEVELOPER_KEY, this);
 
+		audiomanager = (AudioManager) getSystemService(this.AUDIO_SERVICE);
+		 // declare your mp3 player
+        mPlayer = new MediaPlayer();
+        mPlayer.setAudioStreamType(audiomanager.STREAM_MUSIC);
+		
 		// Initialize title and curator views
 		songTitle = (TextView) findViewById(R.id.songTitle);
 		curator = (TextView) findViewById(R.id.curator);
@@ -365,11 +379,63 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 		}
 		else if (msg.get("type").toString().equals("track"))
 		{
+			
 			// Log.d(webtag, "New track!");
-			String track = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("youtube").getJSONObject(0)
+			
+			// TODO: make selection more robust, perhaps use _sources flat array
+			// see:  https://github.com/martindale/soundtrack.io/issues/78
+			JSONArray youtubeVideos = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("youtube");
+			JSONArray soundcloudFiles = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("soundcloud");
+
+			String firstYoutubeVideo = "";
+			if (youtubeVideos.length() > 0) {
+				firstYoutubeVideo = youtubeVideos.getJSONObject(0)
 					.getString("id");
+			}
+			
+			String firstSoundcloudID;
+			String soundcloudURI = "";
+			if (soundcloudFiles.length() > 0) {
+				firstSoundcloudID = soundcloudFiles.getJSONObject(0)
+					.getString("id");
+				soundcloudURI = "http://api.soundcloud.com/tracks/"+firstSoundcloudID+"/stream?client_id=7fbc3f4099d3390415d4c95f16f639ae";
+
+				tempUri = Uri.parse(soundcloudURI);
+				// provide mp3 player with file location
+		        try {
+		        	mPlayer.setDataSource(this,tempUri);
+				}catch (IllegalArgumentException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}catch (SecurityException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}catch (IllegalStateException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}catch (IOException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}
+	
+				// prepare mp3 player
+				try {
+					mPlayer.prepare();
+				}catch (IllegalStateException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}catch (IOException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}
+	
+				// start mp3 player
+				mPlayer.start();
+			
+			}
+
 			try {
-				ytPlayer.loadVideo(track, (int) (msg.getDouble("seekTo") * 1000));
+				ytPlayer.loadVideo(firstYoutubeVideo, (int) (msg.getDouble("seekTo") * 1000));
 			}
 			catch (Exception e) {
 				e.printStackTrace();
