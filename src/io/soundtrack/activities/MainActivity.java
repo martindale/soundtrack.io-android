@@ -3,9 +3,12 @@ package io.soundtrack.activities;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -31,17 +34,21 @@ import com.google.android.youtube.player.YouTubePlayer.PlayerStateChangeListener
 import com.google.android.youtube.player.YouTubePlayerFragment;
 import com.google.android.youtube.player.YouTubePlayer.PlayerStyle;
 
+import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
+import de.tavendo.autobahn.WebSocketConnection;
+import de.tavendo.autobahn.WebSocketException;
+
 import io.soundtrack.R;
 import io.soundtrack.common.ChatAdapter;
 import io.soundtrack.common.ChatItem;
 import io.soundtrack.common.Configuration;
 
-import de.roderick.weberknecht.WebSocket;
+/* import de.roderick.weberknecht.WebSocket;
 import de.roderick.weberknecht.WebSocketEventHandler;
 import de.roderick.weberknecht.WebSocketException;
-import de.roderick.weberknecht.WebSocketMessage;
+import de.roderick.weberknecht.WebSocketMessage; */
 
-public class MainActivity extends YouTubeFailureRecoveryActivity
+public class MainActivity extends YouTubeFailureRecoveryActivity implements WebSocketConnectionObserver
 {
 	//Misc Variables
 	String TAG = "MainActivity";
@@ -53,15 +60,35 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 	//Initialize
 	YouTubePlayer ytPlayer;
 	PowerManager.WakeLock wl;
-	WebSocket websocket;
+	//WebSocket websocket;
 	URI uri;
-	AsyncWebsocket mySocket;
+
+	private WebSocketConnection websocket = new WebSocketConnection();
+	private WebSocketConnection mConnection;
+	private URI mServerURI;
 
 	//UI
 	static ArrayList<ChatItem> chats = new ArrayList<ChatItem>();
 	static ChatAdapter adapter;
 	static TextView songTitle;
 	static TextView curator;
+
+	public void connect() {
+		this.mConnection = new WebSocketConnection();
+
+		try {
+			this.mServerURI = new URI("wss://soundtrack.io/stream/websocket");
+
+			mConnection.connect(mServerURI, this);
+
+		} catch (URISyntaxException e) {
+			String message = e.getLocalizedMessage();
+			Log.e(TAG, message);
+		} catch (WebSocketException e) {
+			String message = e.getLocalizedMessage();
+			Log.e(TAG, message);
+		}
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -73,7 +100,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 
 		// Wakelock init
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-		wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "Sountrack.io");
+		wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "soundtrack.io");
 		wl.acquire();
 
 		// Initialize the youtube player
@@ -99,17 +126,8 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 			@Override
 			public void onClick(View v)
 			{
-				try
-				{
-					websocket.close();
-				}
-				catch (WebSocketException e)
-				{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
-				reconnect();
+				mConnection.disconnect();
+				connect();
 			}
 
 		});
@@ -127,14 +145,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 	public void onBackPressed()
 	{
 		exiting = true;
-		try
-		{
-			websocket.close();
-		}
-		catch (WebSocketException e)
-		{
-			e.printStackTrace();
-		}
+		websocket.disconnect();
 		wl.release();
 		finish();
 	}
@@ -151,8 +162,10 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 		if (!started) {
 			started = true;
 			Log.d("Socket", "Start a new socket since we dont have one yet");
-			mySocket = new AsyncWebsocket();
-			mySocket.execute();
+			connect();
+			
+			/*/mySocket = new AsyncWebsocket();
+			mySocket.execute();/**/
 		}
 
 		// Listen for player events so we can resume playback when the screen gets turned off
@@ -271,144 +284,6 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-
-	// This starts the websocket connection and sets up the listeners for all events, it will auto-reconnect unless we are quiting the app
-	class AsyncWebsocket extends AsyncTask<Void, Void, Void>
-	{
-
-		@Override
-		protected Void doInBackground(Void... params)
-		{
-			try
-			{
-				uri = new URI("wss://soundtrack.io/stream/websocket");
-				websocket = new WebSocket(uri);
-				final String webtag = "websocket";
-
-				websocket.setEventHandler(new WebSocketEventHandler()
-				{
-
-					@Override
-					public void onOpen()
-					{
-						Log.d(webtag, "socket open");
-					}
-
-					@Override
-					public void onMessage(WebSocketMessage message)
-					{
-						retryIdx = 0; // reset our retry timeouts
-						// Log.d(webtag, "message: " + message.getText());
-
-						try
-						{
-							JSONObject msg = new JSONObject(message.getText());
-
-							if (msg.get("type").toString().equals("ping"))
-							{
-								// Log.d(webtag, "Ping!");
-								websocket.send("{\"type\":\"pong\"}");
-							}
-							else if (msg.get("type").toString().equals("chat"))
-							{
-								// Log.d(webtag, "Chat!");
-								runOnUiThread(new AddChatRunnable(msg.getJSONObject("data").getString("formatted").toString()));
-							}
-							else if (msg.get("type").toString().equals("track"))
-							{
-								// Log.d(webtag, "New track!");
-								String track = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("youtube").getJSONObject(0)
-										.getString("id");
-								try {
-									ytPlayer.loadVideo(track, (int) (msg.getDouble("seekTo") * 1000));
-								}
-								catch (Exception e) {
-									e.printStackTrace();
-								}
-
-								String curator = "The Machine";
-								if (msg.getJSONObject("data").has("curator")) {
-									curator = msg.getJSONObject("data").getJSONObject("curator").getString("username");
-								}
-								
-								runOnUiThread(new SongInfoRunnable(msg.getJSONObject("data").getString("title"), curator));
-							}
-							else
-							{
-								Log.w(webtag, "socket type: " + msg.get("type").toString());
-							}
-						}
-						catch (JSONException e)
-						{
-							e.printStackTrace();
-						}
-						catch (WebSocketException e)
-						{
-							e.printStackTrace();
-						}
-					}
-
-					@Override
-					public void onClose()
-					{
-						Log.d(webtag, "connection closed");
-						reconnect();
-					}
-
-					@Override
-					public void onPing()
-					{
-						// Auto stub
-
-					}
-
-					@Override
-					public void onPong()
-					{
-						// Auto stub
-
-					}
-				});
-
-				websocket.connect();
-			}
-			catch (WebSocketException wse)
-			{
-				wse.printStackTrace();
-				reconnect();
-			}
-			catch (URISyntaxException use)
-			{
-				use.printStackTrace();
-			}
-
-			return null;
-		}
-	}
-
-	// A function we can call to restart the socket
-	void reconnect()
-	{
-		Log.w("Socket", "Reconnecting...");
-		if (!exiting)
-		{
-			TimerTask task = new TimerTask()
-			{
-				public void run()
-				{
-					mySocket.cancel(true);
-					
-					websocket = null;
-					mySocket = null;
-					
-					mySocket = new AsyncWebsocket();
-					mySocket.execute();
-				}
-			};
-			Timer timer = new Timer();
-			timer.schedule(task, 100);
-		}
-	}
 	
 	private static class SongInfoRunnable implements Runnable
 	{
@@ -450,6 +325,84 @@ public class MainActivity extends YouTubeFailureRecoveryActivity
 			adapter.notifyDataSetChanged();
 		}
 
+	}
+
+	@Override
+	public void onOpen() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onClose(WebSocketCloseNotification code, String reason) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void send(String message) {
+
+		mConnection.sendTextMessage(message);
+
+	}
+
+	@Override
+	public void onTextMessage(String payload) {
+		String message = payload;
+		Log.d(TAG, message);
+
+		try {
+		JSONObject msg = new JSONObject(message);
+
+		if (msg.get("type").toString().equals("ping"))
+		{
+			// Log.d(webtag, "Ping!");
+			send("{\"type\":\"pong\"}");
+		}
+		else if (msg.get("type").toString().equals("chat"))
+		{
+			// Log.d(webtag, "Chat!");
+			runOnUiThread(new AddChatRunnable(msg.getJSONObject("data").getString("formatted").toString()));
+		}
+		else if (msg.get("type").toString().equals("track"))
+		{
+			// Log.d(webtag, "New track!");
+			String track = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("youtube").getJSONObject(0)
+					.getString("id");
+			try {
+				ytPlayer.loadVideo(track, (int) (msg.getDouble("seekTo") * 1000));
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			String curator = "The Machine";
+			if (msg.getJSONObject("data").has("curator")) {
+				curator = msg.getJSONObject("data").getJSONObject("curator").getString("username");
+			}
+
+			runOnUiThread(new SongInfoRunnable(msg.getJSONObject("data").getString("title"), curator));
+		}
+		else
+		{
+			Log.w(TAG, "socket type: " + msg.get("type").toString());
+		}
+		} catch (JSONException e)
+		{
+			e.printStackTrace();
+		}
+
+	}
+
+	@Override
+	public void onRawTextMessage(byte[] payload) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onBinaryMessage(byte[] payload) {
+		// TODO Auto-generated method stub
+		
 	};
 
 }
