@@ -381,6 +381,8 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 		{
 			
 			// Log.d(webtag, "New track!");
+			mPlayer.stop();
+			ytPlayer.pause();
 			
 			// TODO: make selection more robust, perhaps use _sources flat array
 			// see:  https://github.com/martindale/soundtrack.io/issues/78
@@ -391,6 +393,12 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 			if (youtubeVideos.length() > 0) {
 				firstYoutubeVideo = youtubeVideos.getJSONObject(0)
 					.getString("id");
+				try {
+					ytPlayer.loadVideo(firstYoutubeVideo, (int) (msg.getDouble("seekTo") * 1000));
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 			
 			String firstSoundcloudID;
@@ -432,13 +440,6 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 				// start mp3 player
 				mPlayer.start();
 			
-			}
-
-			try {
-				ytPlayer.loadVideo(firstYoutubeVideo, (int) (msg.getDouble("seekTo") * 1000));
-			}
-			catch (Exception e) {
-				e.printStackTrace();
 			}
 
 			String curator = "The Machine";
