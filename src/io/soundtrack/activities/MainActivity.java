@@ -3,11 +3,15 @@ package io.soundtrack.activities;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
@@ -17,6 +21,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import android.R.string;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -81,6 +86,24 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 	static ChatAdapter adapter;
 	static TextView songTitle;
 	static TextView curator;
+	static TextView progress;
+
+	class UpdateTimerTask implements Runnable {
+
+	  Long millis = (long) 0;
+	  SimpleDateFormat df = new SimpleDateFormat("mm:ss");
+
+	  public UpdateTimerTask(int i) {
+		 millis = (long) i;
+	  }
+
+	@Override
+	  public void run() {
+		  	millis += 1000;
+			String time = df.format(new Date( millis ));
+			progress.setText( time );
+	  } 
+	}
 
 	public void connect() {
 		this.mConnection = new WebSocketConnection();
@@ -124,6 +147,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 		// Initialize title and curator views
 		songTitle = (TextView) findViewById(R.id.songTitle);
 		curator = (TextView) findViewById(R.id.curator);
+		progress = (TextView) findViewById(R.id.progress);
 
 		// Initialize chat
 		adapter = new ChatAdapter(chats);
@@ -131,6 +155,11 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 		chatview.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
 		chatview.setStackFromBottom(true);
 		chatview.setAdapter(adapter);
+		
+		ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
+		
+		UpdateTimerTask myTimer = new UpdateTimerTask( 0 );
+		exec.scheduleAtFixedRate(myTimer, 0, 100, TimeUnit.MICROSECONDS);
 
 		// Initialize reload button
 		Button btnReload = (Button) findViewById(R.id.reload);
@@ -384,6 +413,11 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 			mPlayer.stop();
 			ytPlayer.pause();
 			
+			ScheduledThreadPoolExecutor exec = new ScheduledThreadPoolExecutor(1);
+			
+			UpdateTimerTask myTimer = new UpdateTimerTask( (int) (msg.getDouble("seekTo") * 1000) );
+			exec.scheduleAtFixedRate(myTimer, 0, 100, TimeUnit.MICROSECONDS);
+			
 			// TODO: make selection more robust, perhaps use _sources flat array
 			// see:  https://github.com/martindale/soundtrack.io/issues/78
 			JSONArray youtubeVideos = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("youtube");
@@ -439,7 +473,8 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 	
 				// start mp3 player
 				mPlayer.start();
-			
+				mPlayer.seekTo((int) (msg.getDouble("seekTo") * 1000));
+				
 			}
 
 			String curator = "The Machine";
