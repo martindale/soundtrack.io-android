@@ -468,10 +468,11 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 					mPlayer.seekTo((int) (msg.getDouble("seekTo") * 1000));
 				}
 				
-			}
-			
-			/*String firstYoutubeVideo = "";
-			if (youtubeVideos.length() > 0) {
+			} else if (youtubeVideos.length() > 0) {
+
+				
+				String firstYoutubeVideo = "";
+				
 				firstYoutubeVideo = youtubeVideos.getJSONObject(0)
 					.getString("id");
 				try {
@@ -480,7 +481,7 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 				catch (Exception e) {
 					e.printStackTrace();
 				}
-			}*/
+			}
 
 			String curator = "The Machine";
 			if (msg.getJSONObject("data").has("curator")) {
