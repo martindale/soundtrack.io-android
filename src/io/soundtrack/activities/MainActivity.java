@@ -337,7 +337,6 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 		{
 			this.title = title;
 			this.curatorName = curator;
-			
 		}
 
 		@Override
@@ -420,24 +419,18 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 			
 			// TODO: make selection more robust, perhaps use _sources flat array
 			// see:  https://github.com/martindale/soundtrack.io/issues/78
-			JSONArray youtubeVideos = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("youtube");
-			JSONArray soundcloudFiles = msg.getJSONObject("data").getJSONObject("sources").getJSONArray("soundcloud");
-
-			String firstYoutubeVideo = "";
-			if (youtubeVideos.length() > 0) {
-				firstYoutubeVideo = youtubeVideos.getJSONObject(0)
-					.getString("id");
-				try {
-					ytPlayer.loadVideo(firstYoutubeVideo, (int) (msg.getDouble("seekTo") * 1000));
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			JSONArray youtubeVideos = msg.getJSONObject("sources").getJSONArray("youtube");
+			JSONArray soundcloudFiles = msg.getJSONObject("sources").getJSONArray("soundcloud");
 			
 			String firstSoundcloudID;
 			String soundcloudURI = "";
 			if (soundcloudFiles.length() > 0) {
+				
+				// TODO: loop through sources, exit loop (break) when one begins playing
+				for (int i = 0; i < soundcloudFiles.length(); i++) {
+					
+					
+				}
 				firstSoundcloudID = soundcloudFiles.getJSONObject(0)
 					.getString("id");
 				soundcloudURI = "http://api.soundcloud.com/tracks/"+firstSoundcloudID+"/stream?client_id=7fbc3f4099d3390415d4c95f16f639ae";
@@ -469,13 +462,25 @@ public class MainActivity extends YouTubeFailureRecoveryActivity implements WebS
 				}catch (IOException ex) {
 					// TODO Auto-generated catch block
 					ex.printStackTrace();
+				} finally {
+					// start mp3 player
+					mPlayer.start();
+					mPlayer.seekTo((int) (msg.getDouble("seekTo") * 1000));
 				}
-	
-				// start mp3 player
-				mPlayer.start();
-				mPlayer.seekTo((int) (msg.getDouble("seekTo") * 1000));
 				
 			}
+			
+			/*String firstYoutubeVideo = "";
+			if (youtubeVideos.length() > 0) {
+				firstYoutubeVideo = youtubeVideos.getJSONObject(0)
+					.getString("id");
+				try {
+					ytPlayer.loadVideo(firstYoutubeVideo, (int) (msg.getDouble("seekTo") * 1000));
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+			}*/
 
 			String curator = "The Machine";
 			if (msg.getJSONObject("data").has("curator")) {
